@@ -1,371 +1,271 @@
-# Pinterest Fashion Scraper Pipeline
+# Pinterest Scraper REST API with AI Fashion Analysis
 
-🎯 **Production-ready Pinterest scraping pipeline for AI/ML fashion data collection**
+A production-ready REST API for Pinterest scraping with AI-powered fashion analysis, MongoDB storage, and AWS deployment capabilities. Extract fashion data from Pinterest boards and get comprehensive AI analysis through RESTful endpoints.
 
-Built for sustainable backend engineering with robust image storage, security procedures, and automated workflows.
+## 🚀 Features
 
-## 🚀 **Current Status: PRODUCTION READY**
+- **Production-Ready**: Anti-bot detection measures, rate limiting, error handling
+- **AI-Powered**: Advanced fashion analysis using Google Gemini AI
+- **Batch Processing**: Scrape multiple boards with concurrent image processing
+- **Training Dataset**: Generates ML-ready datasets with structured labels
+- **Ban-Proof**: Uses undetected-chromedriver, proxy rotation, and human-like behavior
+- **Comprehensive Logging**: Detailed logs for monitoring and debugging
 
-✅ **932 fashion images** downloaded and organized (99.7% success rate!)  
-✅ **935 pins** with complete metadata in database  
-✅ **AI analysis system** ready (Google Gemini integration)  
-✅ **Automated daily scraping** via cron jobs  
-✅ **Duplicate prevention** and error handling  
-✅ **Scalable architecture** for hundreds of Pinterest accounts  
+## 📋 Requirements
 
-## 🎯 **How This Project Works**
+- Python 3.8+
+- Chrome browser
+- Pinterest account (optional but recommended)
+- Google Gemini API key
 
-### **1. SCRAPING WORKFLOW**
-```
-Pinterest Boards → Scraper → Database → Image Downloader → AI Analysis
-```
+## 🛠️ Installation
 
-1. **Pinterest Scraper** extracts pin metadata from specified boards
-2. **Database** stores pin information (URLs, titles, descriptions)
-3. **Image Downloader** downloads actual images + creates thumbnails
-4. **AI Analyzer** extracts fashion details (garments, colors, styles)
-5. **Cron Jobs** automate daily updates
+1. **Clone or download the project files**
 
-### **2. CURRENT DATASET**
-- **932 fashion images** (full resolution) - 99.7% download success!
-- **932 thumbnails** (300x300 optimized)
-- **935 pin records** with metadata
-- **International content** (English, Spanish, German, French)
-- **Diverse styles** (casual, formal, street style, vintage)
+2. **Install dependencies:**
+   ```bash
+   python setup.py
+   ```
+   
+   Or manually:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-### **3. MONITORED BOARDS**
-Currently scraping these Pinterest boards:
-1. **Rita Mota Fashion Board**: `https://www.pinterest.com/mohanty2922/rita-mota/`
-2. **Hailey Bieber Fashion**: `https://www.pinterest.com/mohanty2922/hailey-bieber-fashion/`
+3. **Configure credentials:**
+   
+   Edit `config.json` and add your credentials:
+   ```json
+   {
+     "gemini_api_key": "your_gemini_api_key_here",
+     "pinterest_email": "your_email@example.com",
+     "pinterest_password": "your_password",
+     "board_urls": [
+       "https://www.pinterest.com/username/board-name/"
+     ]
+   }
+   ```
 
-## ⚠️ **AUTHENTICATION STATUS & IMPACT**
+## 📖 Usage
 
-### **Current Configuration**
+### Basic Usage
+
+1. **Add board URLs to `example_boards.txt`:**
+   ```
+   https://www.pinterest.com/fashionista/street-style/
+   https://www.pinterest.com/styleblogger/casual-outfits/
+   ```
+
+2. **Run the scraper:**
+   ```bash
+   python run_scraper.py --boards example_boards.txt
+   ```
+
+### Advanced Usage
+
 ```bash
-# ✅ CONFIGURED
-GEMINI_API_KEY=AIzaSy...  # Google AI for fashion analysis
-DATABASE_PATH=pinterest_pins.db
-MAX_PINS_PER_BOARD=1000
-DELAY_BETWEEN_REQUESTS=2
+# Scrape specific boards with custom settings
+python run_scraper.py \
+  --url "https://www.pinterest.com/user/board1/" \
+  --url "https://www.pinterest.com/user/board2/" \
+  --max-pins 50 \
+  --headless \
+  --output-dir my_dataset
 
-# ❌ MISSING - Add for optimal scraping:
-# PINTEREST_EMAIL=your_email@example.com
-# PINTEREST_PASSWORD=your_password
+# Test configuration without scraping
+python run_scraper.py --dry-run
+
+# Skip AI analysis (faster scraping)
+python run_scraper.py --boards boards.txt --no-ai
 ```
 
-### **Performance Impact**
+### Command Line Options
 
-**WITHOUT Pinterest Authentication (Current):**
-- ✅ Success rate: **99.7%** (932/935 images downloaded)
-- ⚠️ May hit rate limits on large-scale scraping
-- ⚠️ Some boards may show sign-up prompts
-- ⚠️ Limited to public content only
+- `--config`: Configuration file path (default: config.json)
+- `--boards`: Text file with board URLs (one per line)
+- `--url`: Single board URL (can be used multiple times)
+- `--max-pins`: Maximum pins per board
+- `--headless`: Run browser in headless mode
+- `--no-ai`: Skip AI analysis
+- `--output-dir`: Output directory for scraped data
+- `--dry-run`: Test configuration without scraping
 
-**WITH Pinterest Authentication (Recommended):**
-- ✅ Success rate: **99%+** consistently
-- ✅ Access to more boards and private content
-- ✅ Reduced rate limiting
-- ✅ Bypasses sign-up prompts
-- ✅ Better for scaling to hundreds of accounts
-## 🔧 **Setup & Configuration**
+## 📁 Output Structure
 
-### **1. Environment Variables (.env)**
-
-Your current configuration:
-```bash
-# ✅ WORKING CONFIGURATION
-GEMINI_API_KEY=AIzaSyAmVwdxxXp3imBs7W7LWHppmCgjEpZt2rQ
-DATABASE_PATH=pinterest_pins.db
-MAX_PINS_PER_BOARD=1000
-DELAY_BETWEEN_REQUESTS=2
-
-# 💡 OPTIONAL - Add for enhanced scraping:
-# PINTEREST_EMAIL=your_email@example.com
-# PINTEREST_PASSWORD=your_password
+```
+scraped_data/
+├── images/                    # Downloaded images
+│   ├── pin_id_1.jpg
+│   └── pin_id_2.jpg
+├── pinterest_data.json        # Raw scraped data
+├── training_dataset.json      # ML-ready dataset
+├── dataset_manifest.json      # Dataset metadata
+└── scraper.log               # Detailed logs
 ```
 
-### **2. Board Configuration (board_urls.json)**
+## 🤖 AI Analysis Features
 
-Currently monitoring:
+The scraper uses Google Gemini AI to analyze each image and extract:
+
+### Fashion Item Detection
+- Categories (Clothing, Footwear, Accessories, Bags)
+- Specific types (T-shirt, Jeans, Sneakers, etc.)
+- Colors and materials
+- Brand identification
+- Style classification
+
+### Advanced Style Analysis
+- Overall aesthetic and style category
+- Color harmony and psychology
+- Silhouette and proportion analysis
+- Trend analysis and forecasting
+- Occasion and season suitability
+- Price range estimation
+- Influencer style matching
+
+### Training Labels
+Automatically generates ML training labels:
+- Categories, types, colors, materials
+- Style tags and attributes
+- Occasion and seasonal tags
+- Comprehensive tag vocabulary
+
+## ⚙️ Configuration
+
+### config.json Options
+
 ```json
 {
-  "board_urls": [
-    "https://www.pinterest.com/mohanty2922/rita-mota/",
-    "https://www.pinterest.com/mohanty2922/hailey-bieber-fashion/"
-  ],
-  "scraping_config": {
-    "max_pins_per_board": 2000,
-    "random_delay_min": 1,
-    "random_delay_max": 10,
-    "headless_mode": true
-  }
-}
-```
-
-## 🚀 **How to Use**
-
-### **Quick Commands**
-
-```bash
-# Activate environment
-source .venv/bin/activate
-
-# Run complete production pipeline
-python3 production_pipeline.py
-
-# Label downloaded images with AI
-python3 label_downloaded_images.py
-
-# View your fashion dataset
-python3 view_database.py
-
-# Setup daily automation
-./setup_cron.sh
-```
-
-### **Download More Images**
-```bash
-# Download images for all pins in database
-python3 -c "
-from scraper_with_images import PinterestScraperWithImages
-scraper = PinterestScraperWithImages(download_images=True)
-results = scraper.download_existing_pins()
-print(f'Downloaded: {results}')
-"
-```
-
-### **AI Fashion Analysis**
-```bash
-# Analyze all downloaded images
-python3 label_downloaded_images.py
-
-# Results saved to: labeling_report_*.json
-```
-
-## 📁 **Project Architecture**
-
-### **Core Modules**
-```
-📦 pinterest_scraper.py      # Selenium-based Pinterest scraping
-📦 database.py              # SQLite operations (935 pins)
-📦 image_downloader.py      # Image downloading + thumbnails
-📦 ai_analyzer.py           # Google Gemini fashion analysis
-📦 production_pipeline.py   # Complete workflow orchestration
-📦 cron_scraper.py         # Automated daily runs
-📦 label_downloaded_images.py # Batch image labeling
-📦 view_database.py        # Database viewer
-```
-
-### **Data Storage**
-```
-📂 pinterest_pins.db        # 376KB SQLite database (935 pins)
-📂 downloaded_images/
-   ├── pins/               # 932 full-size fashion images
-   ├── thumbnails/         # 932 optimized previews
-   └── failed/             # Error handling
-```
-
-### **Configuration Files**
-```
-📄 .env                    # Environment variables
-📄 board_urls.json         # Pinterest boards to monitor
-📄 requirements.txt        # Python dependencies
-📄 setup_cron.sh          # Automation setup
-```
-
-## 🤖 **AI Fashion Analysis**
-
-With Google Gemini integration, the system analyzes:
-- **Garment Types**: dresses, shirts, pants, accessories
-- **Colors & Patterns**: color palettes, prints, textures
-- **Styles**: casual, formal, vintage, trendy
-- **Occasions**: work, party, casual, seasonal
-- **Fashion Trends**: emerging styles and combinations
-
-### **Sample AI Analysis Output**
-```json
-{
-  "pin_id": "1012887772451417975",
-  "basic_labels": {
-    "garments": [],
-    "styles": ["trendy"],
-    "colors": [],
-    "occasions": []
-  },
-  "image_info": {
-    "width": 236,
-    "height": 236,
-    "file_size_mb": 0.01
-  }
-}
-```
-
-## 🔄 **Automation & Scaling**
-
-### **Daily Automation**
-```bash
-# Setup cron job for daily 2 AM runs
-./setup_cron.sh
-
-# Manual cron run
-python3 cron_scraper.py
-```
-
-### **Scaling to More Boards**
-```json
-// Add to board_urls.json
-{
-  "board_urls": [
-    "https://www.pinterest.com/user1/fashion-board/",
-    "https://www.pinterest.com/user2/style-inspiration/",
-    "https://www.pinterest.com/user3/outfit-ideas/"
+  "output_dir": "scraped_data",
+  "images_dir": "images",
+  "max_pins_per_board": 100,
+  "request_delay": 2,
+  "max_workers": 3,
+  "headless": false,
+  "use_undetected_chrome": true,
+  "gemini_api_key": "your_api_key",
+  "pinterest_email": "your_email",
+  "pinterest_password": "your_password",
+  "proxy_list": [
+    "http://proxy1:port",
+    "http://proxy2:port"
   ]
 }
 ```
 
-## 📊 **Performance Metrics**
+### Anti-Bot Measures
 
-- **Download Success Rate**: **99.7%** (932/935 images)
-- **Processing Speed**: ~2-3 images/second
-- **Storage Efficiency**: ~15KB average per image
-- **AI Analysis**: ~1 second per image
-- **Duplicate Prevention**: 100% effective
-- **Database Size**: 376KB for 935 pins
+- **Undetected ChromeDriver**: Bypasses basic bot detection
+- **Random User Agents**: Rotates browser fingerprints
+- **Human-like Delays**: Random delays between actions
+- **Rate Limiting**: Configurable request delays
+- **Proxy Support**: Rotate through proxy servers
+- **Session Management**: Maintains login state
 
-## 🛡️ **Security & Anti-Detection**
+## 🔧 Troubleshooting
 
-- **Random delays** (1-10 seconds) between requests
-- **User-agent rotation** to avoid detection
-- **Headless browser** operation
-- **Exponential backoff** on failures
-- **Rate limiting** compliance
-- **ChromeDriver** auto-management
+### Common Issues
 
-## 🔧 **Troubleshooting**
+1. **ChromeDriver Issues**
+   ```bash
+   pip install webdriver-manager
+   python setup.py
+   ```
 
-### **Common Issues & Solutions**
+2. **Pinterest Login Failed**
+   - Check credentials in config.json
+   - Try logging in manually first
+   - Use 2FA app passwords if enabled
 
-1. **Low success rate** 
-   - ✅ Current: 99.7% success rate
-   - 💡 Add Pinterest authentication for 100% reliability
+3. **AI Analysis Errors**
+   - Verify Gemini API key
+   - Check API quota limits
+   - Use --no-ai flag to skip analysis
 
-2. **ChromeDriver errors** 
-   - ✅ Automatically managed by webdriver-manager
-   - 💡 Chrome browser required
+4. **Bot Detection**
+   - Enable headless mode: `--headless`
+   - Add proxy servers to config
+   - Increase request delays
+   - Use different Pinterest account
 
-3. **Rate limiting** 
-   - ✅ Built-in delays and backoff
-   - 💡 Increase `DELAY_BETWEEN_REQUESTS` if needed
+### Logs and Debugging
 
-4. **AI analysis fails** 
-   - ✅ GEMINI_API_KEY configured
-   - 💡 Check API quota and billing
-
-### **Logs & Monitoring**
+Check `scraper.log` for detailed information:
 ```bash
-# Check scraping logs
-tail -f pinterest_scraper.log
-
-# View download progress
-ls -la downloaded_images/pins/ | wc -l
-
-# Database statistics
-python3 view_database.py
-
-# Test all modules
-python3 -c "print('Testing imports...')"
+tail -f scraper.log
 ```
 
-## 🎯 **Next Steps**
+## 📊 Dataset Format
 
-1. **✅ WORKING**: 932 images downloaded with 99.7% success rate
-2. **💡 OPTIONAL**: Add Pinterest authentication for 100% reliability
-3. **🚀 SCALE**: Add more boards to `board_urls.json`
-4. **🤖 AUTOMATE**: Enable daily automation with `./setup_cron.sh`
-5. **🧠 AI**: Integrate with ML models using the downloaded dataset
+### Training Dataset Structure
 
-## 📋 **Requirements**
-
-- ✅ Python 3.8+ (installed)
-- ✅ Chrome/Chromium browser (working)
-- ✅ Google Gemini API key (configured)
-- 💡 Pinterest account (optional for authentication)
-
-## 🏆 **Success Metrics**
-
-- **✅ 932 fashion images** downloaded and organized
-- **✅ 99.7% download success rate** without authentication
-- **✅ Complete AI analysis pipeline** ready
-- **✅ Production-ready automation** available
-- **✅ Scalable to hundreds of accounts** as requested
-
-
-- **Fashion Item Detection**: Identifies clothing items, accessories, shoes, etc.
-- **Color Analysis**: Dominant colors, color harmony, seasonal associations
-- **Style Classification**: Overall aesthetic, style category, influences
-- **Silhouette Analysis**: Shape, proportions, fit philosophy
-- **Fabric Analysis**: Material identification, texture assessment
-- **Trend Analysis**: Current trends, timeless elements, longevity
-- **Occasion Suitability**: Appropriate settings and dress codes
-
-## Database Schema
-
-The pipeline creates three main tables:
-
-- **boards**: Pinterest board information
-- **pins**: Individual pin data (URLs, titles, descriptions)
-- **ai_labels**: AI analysis results for each pin
-
-## Configuration
-
-Environment variables in `.env`:
-
-```
-GEMINI_API_KEY=your_api_key_here
-DATABASE_PATH=pinterest_pins.db
-MAX_PINS_PER_BOARD=1000
-DELAY_BETWEEN_REQUESTS=2
+```json
+{
+  "metadata": {
+    "total_samples": 150,
+    "created_at": "2024-01-15T10:30:00",
+    "description": "Pinterest fashion dataset with AI analysis"
+  },
+  "samples": [
+    {
+      "image_path": "images/pin_123.jpg",
+      "image_id": "pin_123",
+      "title": "Casual Street Style",
+      "description": "Comfortable outfit for daily wear",
+      "labels": [
+        {
+          "category": "Clothing",
+          "type": "T-shirt",
+          "color": ["white", "navy"],
+          "material": "Cotton",
+          "style": "Casual"
+        }
+      ],
+      "tags": ["clothing", "t_shirt", "white", "navy", "cotton", "casual"]
+    }
+  ]
+}
 ```
 
-## Logging
+## 🚨 Legal and Ethical Considerations
 
-The pipeline generates detailed logs:
-- `pinterest_scraper.log`: Scraping operations
-- `pinterest_pipeline.log`: Overall pipeline execution
+- **Respect Pinterest's Terms of Service**
+- **Use reasonable rate limits** to avoid overloading servers
+- **Only scrape public content**
+- **Respect copyright** - use data for research/personal use
+- **Consider Pinterest's robots.txt**
 
-## Error Handling
+## 🤝 Contributing
 
-- Robust error handling for network issues
-- Graceful degradation when images can't be downloaded
-- Retry mechanisms for API rate limiting
-- Detailed error logging for debugging
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
-## Rate Limiting
+## 📄 License
 
-The pipeline includes built-in delays to respect Pinterest's terms of service:
-- Configurable delays between requests
-- Batch processing with pauses
-- User-agent rotation for scraping
+This project is for educational and research purposes. Please respect Pinterest's terms of service and copyright laws.
 
-## Requirements
+## 🆘 Support
 
-- Python 3.8+
-- Chrome browser (for Selenium WebDriver)
-- Google Gemini API key
-- Internet connection
+If you encounter issues:
 
-## Troubleshooting
+1. Check the troubleshooting section
+2. Review the logs in `scraper.log`
+3. Ensure all dependencies are installed
+4. Verify your configuration settings
 
-1. **ChromeDriver Issues**: The script automatically downloads ChromeDriver
-2. **API Rate Limits**: Increase delays in configuration
-3. **Image Download Failures**: Check network connectivity and image URLs
-4. **Database Errors**: Ensure write permissions in the project directory
+## 🔄 Updates and Maintenance
 
-## Legal Notice
+The scraper includes mechanisms to handle:
+- Pinterest UI changes
+- Anti-bot measure updates
+- API changes
+- Chrome/ChromeDriver updates
 
-This tool is for educational and research purposes. Please respect Pinterest's Terms of Service and robots.txt. Always ensure you have permission to scrape content and comply with applicable laws and regulations.
+Regular updates may be needed as Pinterest evolves their platform.
 
-## License
+---
 
-This project is provided as-is for educational purposes. Use responsibly and in accordance with all applicable terms of service and laws.
-# pinscrper
+**Happy Scraping! 🎨👗👠**

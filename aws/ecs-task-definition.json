@@ -1,0 +1,107 @@
+{
+  "family": "pinterest-scraper-api",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "1024",
+  "memory": "2048",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/production-pinterest-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/production-pinterest-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "pinterest-scraper-api",
+      "image": "ACCOUNT_ID.dkr.ecr.REGION.amazonaws.com/pinterest-scraper-api:latest",
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "essential": true,
+      "environment": [
+        {
+          "name": "MONGODB_URL",
+          "value": "mongodb://mongodb-cluster:27017/pinterest_scraper"
+        },
+        {
+          "name": "DATABASE_NAME",
+          "value": "pinterest_scraper"
+        },
+        {
+          "name": "HOST",
+          "value": "0.0.0.0"
+        },
+        {
+          "name": "PORT",
+          "value": "8000"
+        },
+        {
+          "name": "AWS_DEFAULT_REGION",
+          "value": "us-east-1"
+        },
+        {
+          "name": "S3_BUCKET_NAME",
+          "value": "production-pinterest-images-ACCOUNT_ID"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "PINTEREST_EMAIL",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:production-pinterest-credentials:email::"
+        },
+        {
+          "name": "PINTEREST_PASSWORD",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:production-pinterest-credentials:password::"
+        },
+        {
+          "name": "GEMINI_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:production-gemini-api-key:api_key::"
+        },
+        {
+          "name": "API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:REGION:ACCOUNT_ID:secret:production-api-key:key::"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/production-pinterest-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:8000/health || exit 1"
+        ],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      },
+      "mountPoints": [
+        {
+          "sourceVolume": "scraped-data",
+          "containerPath": "/app/scraped_data",
+          "readOnly": false
+        }
+      ]
+    }
+  ],
+  "volumes": [
+    {
+      "name": "scraped-data",
+      "host": {}
+    }
+  ],
+  "tags": [
+    {
+      "key": "Environment",
+      "value": "production"
+    },
+    {
+      "key": "Application",
+      "value": "pinterest-scraper-api"
+    }
+  ]
+}

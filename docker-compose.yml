@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7.0
+    container_name: pinterest-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_DATABASE: pinterest_scraper
+    volumes:
+      - mongodb_data:/data/db
+      - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - pinterest-network
+
+  # Redis for caching and task queue
+  redis:
+    image: redis:7.2-alpine
+    container_name: pinterest-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - pinterest-network
+
+  # Pinterest Scraper API
+  api:
+    build: .
+    container_name: pinterest-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/pinterest_scraper?authSource=admin
+      - DATABASE_NAME=pinterest_scraper
+      - REDIS_URL=redis://redis:6379
+      - PINTEREST_EMAIL=${PINTEREST_EMAIL}
+      - PINTEREST_PASSWORD=${PINTEREST_PASSWORD}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - API_KEY=${API_KEY:-dev-key-12345}
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./scraped_data:/app/scraped_data
+      - ./logs:/app/logs
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - pinterest-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Celery Worker for background tasks
+  worker:
+    build: .
+    container_name: pinterest-worker
+    restart: unless-stopped
+    command: celery -A api.celery_app worker --loglevel=info
+    environment:
+      - MONGODB_URL=mongodb://admin:password123@mongodb:27017/pinterest_scraper?authSource=admin
+      - DATABASE_NAME=pinterest_scraper
+      - REDIS_URL=redis://redis:6379
+      - PINTEREST_EMAIL=${PINTEREST_EMAIL}
+      - PINTEREST_PASSWORD=${PINTEREST_PASSWORD}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - ./scraped_data:/app/scraped_data
+      - ./logs:/app/logs
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - pinterest-network
+
+  # Nginx reverse proxy
+  nginx:
+    image: nginx:alpine
+    container_name: pinterest-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - api
+    networks:
+      - pinterest-network
+
+volumes:
+  mongodb_data:
+  redis_data:
+
+networks:
+  pinterest-network:
+    driver: bridge

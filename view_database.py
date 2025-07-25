@@ -1,232 +1,284 @@
 #!/usr/bin/env python3
 """
-Database Viewer for Pinterest Pin Scraper Pipeline
-
-This script helps you explore and view the contents of your Pinterest pins database.
+Pinterest Database Viewer
+View and explore scraped Pinterest data
 """
 
-import sqlite3
 import json
-import pandas as pd
-from datetime import datetime
 import os
+from datetime import datetime
+from pathlib import Path
+import sys
 
-class DatabaseViewer:
-    def __init__(self, db_path="pinterest_pins.db"):
-        self.db_path = db_path
-        if not os.path.exists(db_path):
-            print(f"❌ Database file '{db_path}' not found!")
-            print("Run the pipeline first to create the database.")
-            return
-        
-        self.conn = sqlite3.connect(db_path)
-        print(f"✅ Connected to database: {db_path}")
-    
-    def show_tables(self):
-        """Show all tables in the database"""
-        cursor = self.conn.cursor()
-        cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = cursor.fetchall()
-        
-        print("\n📊 Database Tables:")
-        print("-" * 20)
-        for table in tables:
-            print(f"• {table[0]}")
-    
-    def show_stats(self):
-        """Show database statistics"""
-        cursor = self.conn.cursor()
-        
-        # Total boards
-        cursor.execute("SELECT COUNT(*) FROM boards")
-        total_boards = cursor.fetchone()[0]
-        
-        # Total pins
-        cursor.execute("SELECT COUNT(*) FROM pins")
-        total_pins = cursor.fetchone()[0]
-        
-        # Labeled pins
-        cursor.execute("SELECT COUNT(*) FROM ai_labels")
-        labeled_pins = cursor.fetchone()[0]
-        
-        # Average confidence score
-        cursor.execute("SELECT AVG(confidence_score) FROM ai_labels WHERE confidence_score > 0")
-        result = cursor.fetchone()
-        avg_confidence = result[0] if result[0] else 0.0
-        
-        print("\n📈 Database Statistics:")
-        print("-" * 25)
-        print(f"📁 Total Boards: {total_boards}")
-        print(f"📌 Total Pins: {total_pins}")
-        print(f"🏷️  Labeled Pins: {labeled_pins}")
-        print(f"⏳ Unlabeled Pins: {total_pins - labeled_pins}")
-        print(f"🎯 Average Confidence: {avg_confidence:.2f}")
-        
-        if total_pins > 0:
-            completion_rate = (labeled_pins / total_pins) * 100
-            print(f"✅ Completion Rate: {completion_rate:.1f}%")
-    
-    def show_boards(self):
-        """Show all boards"""
-        df = pd.read_sql_query("SELECT * FROM boards", self.conn)
-        
-        print("\n📁 Pinterest Boards:")
-        print("-" * 30)
-        if df.empty:
-            print("No boards found.")
-        else:
-            for _, board in df.iterrows():
-                print(f"ID: {board['id']}")
-                print(f"Title: {board['board_title'] or 'N/A'}")
-                print(f"URL: {board['board_url']}")
-                print(f"Total Pins: {board['total_pins']}")
-                print(f"Scraped: {board['scraped_at']}")
-                print("-" * 30)
-    
-    def show_recent_pins(self, limit=10):
-        """Show recent pins"""
-        query = """
-        SELECT p.pin_id, p.title, p.image_url, p.scraped_at, b.board_title
-        FROM pins p
-        JOIN boards b ON p.board_id = b.id
-        ORDER BY p.scraped_at DESC
-        LIMIT ?
-        """
-        
-        df = pd.read_sql_query(query, self.conn, params=(limit,))
-        
-        print(f"\n📌 Recent Pins (Last {limit}):")
-        print("-" * 40)
-        if df.empty:
-            print("No pins found.")
-        else:
-            for _, pin in df.iterrows():
-                print(f"Pin ID: {pin['pin_id']}")
-                print(f"Title: {pin['title'][:50] + '...' if pin['title'] and len(pin['title']) > 50 else pin['title'] or 'N/A'}")
-                print(f"Board: {pin['board_title'] or 'N/A'}")
-                print(f"Scraped: {pin['scraped_at']}")
-                print("-" * 40)
-    
-    def show_ai_analysis_sample(self, limit=5):
-        """Show sample AI analysis results"""
-        query = """
-        SELECT p.pin_id, p.title, al.overall_aesthetic, al.style_category, 
-               al.confidence_score, al.processed_at
-        FROM ai_labels al
-        JOIN pins p ON al.pin_id = p.id
-        ORDER BY al.processed_at DESC
-        LIMIT ?
-        """
-        
-        df = pd.read_sql_query(query, self.conn, params=(limit,))
-        
-        print(f"\n🤖 AI Analysis Sample (Last {limit}):")
-        print("-" * 50)
-        if df.empty:
-            print("No AI analysis found.")
-        else:
-            for _, analysis in df.iterrows():
-                print(f"Pin ID: {analysis['pin_id']}")
-                print(f"Title: {analysis['title'][:40] + '...' if analysis['title'] and len(analysis['title']) > 40 else analysis['title'] or 'N/A'}")
-                print(f"Style Category: {analysis['style_category'] or 'N/A'}")
-                print(f"Aesthetic: {analysis['overall_aesthetic'][:60] + '...' if analysis['overall_aesthetic'] and len(analysis['overall_aesthetic']) > 60 else analysis['overall_aesthetic'] or 'N/A'}")
-                print(f"Confidence: {analysis['confidence_score']:.2f}")
-                print(f"Analyzed: {analysis['processed_at']}")
-                print("-" * 50)
-    
-    def search_pins(self, keyword):
-        """Search pins by keyword"""
-        query = """
-        SELECT p.pin_id, p.title, p.description, b.board_title
-        FROM pins p
-        JOIN boards b ON p.board_id = b.id
-        WHERE p.title LIKE ? OR p.description LIKE ?
-        """
-        
-        search_term = f"%{keyword}%"
-        df = pd.read_sql_query(query, self.conn, params=(search_term, search_term))
-        
-        print(f"\n🔍 Search Results for '{keyword}':")
-        print("-" * 40)
-        if df.empty:
-            print("No pins found matching the keyword.")
-        else:
-            for _, pin in df.iterrows():
-                print(f"Pin ID: {pin['pin_id']}")
-                print(f"Title: {pin['title'] or 'N/A'}")
-                print(f"Board: {pin['board_title'] or 'N/A'}")
-                print("-" * 40)
-    
-    def export_to_csv(self, table_name, filename=None):
-        """Export table to CSV"""
-        if not filename:
-            filename = f"{table_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-        
-        try:
-            df = pd.read_sql_query(f"SELECT * FROM {table_name}", self.conn)
-            df.to_csv(filename, index=False)
-            print(f"✅ Exported {table_name} to {filename}")
-        except Exception as e:
-            print(f"❌ Error exporting {table_name}: {e}")
-    
-    def close(self):
-        """Close database connection"""
-        if hasattr(self, 'conn'):
-            self.conn.close()
+def load_scraped_pins_tracker():
+    """Load the scraped pins tracker"""
+    tracker_file = 'scraped_pins_tracker.json'
+    if os.path.exists(tracker_file):
+        with open(tracker_file, 'r') as f:
+            return json.load(f)
+    return {}
 
-def main():
-    """Main function with interactive menu"""
-    viewer = DatabaseViewer()
+def load_dataset():
+    """Load the complete dataset"""
+    dataset_file = 'scraped_data/pinterest_dataset.jsonl'
+    pins = []
     
-    if not hasattr(viewer, 'conn'):
+    if os.path.exists(dataset_file):
+        with open(dataset_file, 'r') as f:
+            for line in f:
+                if line.strip():
+                    pins.append(json.loads(line))
+    
+    return pins
+
+def show_overview():
+    """Show database overview"""
+    print("📊 Pinterest Database Overview")
+    print("=" * 40)
+    
+    # Load tracker data
+    tracker = load_scraped_pins_tracker()
+    total_pins = tracker.get('total_pins', 0)
+    last_updated = tracker.get('last_updated', 'Never')
+    
+    print(f"📌 Total pins scraped: {total_pins}")
+    print(f"🕒 Last updated: {last_updated}")
+    
+    # Check scraped_data directory
+    scraped_dir = Path('scraped_data')
+    if scraped_dir.exists():
+        json_files = list(scraped_dir.glob('pin_*.json'))
+        dataset_file = scraped_dir / 'pinterest_dataset.jsonl'
+        
+        print(f"📁 Individual pin files: {len(json_files)}")
+        print(f"📄 Dataset file: {'✅ Exists' if dataset_file.exists() else '❌ Missing'}")
+        
+        if dataset_file.exists():
+            size_mb = dataset_file.stat().st_size / (1024 * 1024)
+            print(f"💾 Dataset size: {size_mb:.2f} MB")
+    else:
+        print("📁 No scraped_data directory found")
+
+def show_recent_pins(limit=10):
+    """Show recent pins"""
+    print(f"\n📌 Recent {limit} Pins")
+    print("=" * 30)
+    
+    pins = load_dataset()
+    
+    if not pins:
+        print("❌ No pins found in database")
         return
     
-    while True:
-        print("\n" + "="*50)
-        print("📊 Pinterest Database Viewer")
-        print("="*50)
-        print("1. Show database statistics")
-        print("2. Show all boards")
-        print("3. Show recent pins")
-        print("4. Show AI analysis sample")
-        print("5. Search pins by keyword")
-        print("6. Export table to CSV")
-        print("7. Show tables")
-        print("0. Exit")
-        
-        choice = input("\nEnter your choice (0-7): ").strip()
-        
-        if choice == "0":
-            break
-        elif choice == "1":
-            viewer.show_stats()
-        elif choice == "2":
-            viewer.show_boards()
-        elif choice == "3":
-            limit = input("How many recent pins to show? (default 10): ").strip()
-            limit = int(limit) if limit.isdigit() else 10
-            viewer.show_recent_pins(limit)
-        elif choice == "4":
-            limit = input("How many AI analysis samples to show? (default 5): ").strip()
-            limit = int(limit) if limit.isdigit() else 5
-            viewer.show_ai_analysis_sample(limit)
-        elif choice == "5":
-            keyword = input("Enter keyword to search: ").strip()
-            if keyword:
-                viewer.search_pins(keyword)
-        elif choice == "6":
-            table = input("Enter table name (boards/pins/ai_labels): ").strip()
-            if table in ['boards', 'pins', 'ai_labels']:
-                viewer.export_to_csv(table)
-            else:
-                print("Invalid table name!")
-        elif choice == "7":
-            viewer.show_tables()
-        else:
-            print("Invalid choice!")
+    # Sort by scraped_at timestamp (most recent first)
+    pins_sorted = sorted(pins, key=lambda x: x.get('scraped_at', ''), reverse=True)
     
-    viewer.close()
-    print("👋 Goodbye!")
+    for i, pin in enumerate(pins_sorted[:limit], 1):
+        print(f"\n{i}. Pin ID: {pin.get('pin_id', 'Unknown')}")
+        print(f"   Title: {pin.get('title', 'No title')}")
+        print(f"   Board: {pin.get('board_name', 'Unknown board')}")
+        print(f"   URL: {pin.get('url', 'No URL')}")
+        print(f"   Scraped: {pin.get('scraped_at', 'Unknown time')}")
+        
+        # Show AI analysis if available
+        ai_analysis = pin.get('ai_analysis')
+        if ai_analysis:
+            print(f"   🤖 AI Analysis: {ai_analysis.get('style', 'N/A')} style, {len(ai_analysis.get('colors', []))} colors")
+
+def show_board_statistics():
+    """Show statistics by board"""
+    print("\n📋 Board Statistics")
+    print("=" * 25)
+    
+    pins = load_dataset()
+    
+    if not pins:
+        print("❌ No pins found in database")
+        return
+    
+    # Count pins by board
+    board_counts = {}
+    for pin in pins:
+        board_name = pin.get('board_name', 'Unknown')
+        board_counts[board_name] = board_counts.get(board_name, 0) + 1
+    
+    # Sort by count
+    sorted_boards = sorted(board_counts.items(), key=lambda x: x[1], reverse=True)
+    
+    for board, count in sorted_boards:
+        print(f"📌 {board}: {count} pins")
+
+def show_ai_analysis_summary():
+    """Show AI analysis summary"""
+    print("\n🤖 AI Analysis Summary")
+    print("=" * 30)
+    
+    pins = load_dataset()
+    
+    if not pins:
+        print("❌ No pins found in database")
+        return
+    
+    analyzed_pins = [pin for pin in pins if pin.get('ai_analysis')]
+    
+    print(f"📊 Pins with AI analysis: {len(analyzed_pins)}/{len(pins)}")
+    
+    if not analyzed_pins:
+        print("❌ No AI analysis data found")
+        return
+    
+    # Collect style statistics
+    styles = {}
+    colors = {}
+    
+    for pin in analyzed_pins:
+        ai_data = pin.get('ai_analysis', {})
+        
+        # Count styles
+        style = ai_data.get('style', 'Unknown')
+        styles[style] = styles.get(style, 0) + 1
+        
+        # Count colors
+        pin_colors = ai_data.get('colors', [])
+        for color in pin_colors:
+            colors[color] = colors.get(color, 0) + 1
+    
+    # Show top styles
+    print("\n🎨 Top Styles:")
+    for style, count in sorted(styles.items(), key=lambda x: x[1], reverse=True)[:5]:
+        print(f"   {style}: {count} pins")
+    
+    # Show top colors
+    print("\n🌈 Top Colors:")
+    for color, count in sorted(colors.items(), key=lambda x: x[1], reverse=True)[:5]:
+        print(f"   {color}: {count} pins")
+
+def search_pins(query):
+    """Search pins by title or description"""
+    print(f"\n🔍 Search Results for '{query}'")
+    print("=" * 30)
+    
+    pins = load_dataset()
+    
+    if not pins:
+        print("❌ No pins found in database")
+        return
+    
+    # Search in title and description
+    matching_pins = []
+    query_lower = query.lower()
+    
+    for pin in pins:
+        title = pin.get('title', '').lower()
+        description = pin.get('description', '').lower()
+        
+        if query_lower in title or query_lower in description:
+            matching_pins.append(pin)
+    
+    if not matching_pins:
+        print(f"❌ No pins found matching '{query}'")
+        return
+    
+    print(f"✅ Found {len(matching_pins)} matching pins:")
+    
+    for i, pin in enumerate(matching_pins, 1):
+        print(f"\n{i}. {pin.get('title', 'No title')}")
+        print(f"   Board: {pin.get('board_name', 'Unknown')}")
+        print(f"   Description: {pin.get('description', 'No description')[:100]}...")
+
+def export_to_csv():
+    """Export data to CSV format"""
+    print("\n📤 Exporting to CSV")
+    print("=" * 20)
+    
+    pins = load_dataset()
+    
+    if not pins:
+        print("❌ No pins found in database")
+        return
+    
+    import csv
+    
+    csv_file = 'pinterest_export.csv'
+    
+    with open(csv_file, 'w', newline='', encoding='utf-8') as f:
+        if pins:
+            # Get all possible field names
+            fieldnames = set()
+            for pin in pins:
+                fieldnames.update(pin.keys())
+                if pin.get('ai_analysis'):
+                    ai_fields = pin['ai_analysis'].keys()
+                    fieldnames.update([f'ai_{field}' for field in ai_fields])
+            
+            fieldnames = sorted(list(fieldnames))
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            
+            for pin in pins:
+                row = pin.copy()
+                
+                # Flatten AI analysis
+                if pin.get('ai_analysis'):
+                    for key, value in pin['ai_analysis'].items():
+                        row[f'ai_{key}'] = value
+                    del row['ai_analysis']
+                
+                # Convert lists to strings
+                for key, value in row.items():
+                    if isinstance(value, list):
+                        row[key] = ', '.join(map(str, value))
+                
+                writer.writerow(row)
+    
+    print(f"✅ Exported {len(pins)} pins to {csv_file}")
+
+def main():
+    """Main function"""
+    if len(sys.argv) < 2:
+        print("🎯 Pinterest Database Viewer")
+        print("=" * 30)
+        print("Commands:")
+        print("  overview     - Show database overview")
+        print("  recent [N]   - Show N recent pins (default: 10)")
+        print("  boards       - Show statistics by board")
+        print("  ai           - Show AI analysis summary")
+        print("  search TERM  - Search pins by title/description")
+        print("  export       - Export data to CSV")
+        print("  all          - Show all information")
+        print()
+        print("Examples:")
+        print("  python3 view_database.py overview")
+        print("  python3 view_database.py recent 5")
+        print("  python3 view_database.py search fashion")
+        return
+    
+    command = sys.argv[1].lower()
+    
+    if command == 'overview':
+        show_overview()
+    elif command == 'recent':
+        limit = int(sys.argv[2]) if len(sys.argv) > 2 else 10
+        show_recent_pins(limit)
+    elif command == 'boards':
+        show_board_statistics()
+    elif command == 'ai':
+        show_ai_analysis_summary()
+    elif command == 'search':
+        if len(sys.argv) < 3:
+            print("❌ Please provide a search term")
+            return
+        query = ' '.join(sys.argv[2:])
+        search_pins(query)
+    elif command == 'export':
+        export_to_csv()
+    elif command == 'all':
+        show_overview()
+        show_recent_pins(5)
+        show_board_statistics()
+        show_ai_analysis_summary()
+    else:
+        print(f"❌ Unknown command: {command}")
 
 if __name__ == "__main__":
     main()

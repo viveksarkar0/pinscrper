@@ -1,0 +1,25 @@
+2025-07-25 11:36:45,476 - INFO - 📂 Loaded 3 board URLs:
+2025-07-25 11:36:45,476 - INFO -    1. https://in.pinterest.com/mohanty2922/y2k-fashion/
+2025-07-25 11:36:45,476 - INFO -    2. https://in.pinterest.com/mohanty2922/rita-mota-fashion/
+2025-07-25 11:36:45,476 - INFO -    3. https://in.pinterest.com/mohanty2922/hailey-bieber-fashion/
+2025-07-25 11:36:45,477 - INFO - 🚀 Automated Pinterest Scraper initialized
+2025-07-25 11:36:45,477 - INFO - 📋 Monitoring 3 boards
+2025-07-25 11:36:45,477 - INFO - ⏰ Check interval: 30.0 minutes
+2025-07-25 11:36:45,477 - INFO - 🚀 Starting automated Pinterest scraper service
+2025-07-25 11:36:45,477 - INFO - ⏰ Will check for new pins every 30.0 minutes
+2025-07-25 11:36:45,477 - INFO - 🔄 Starting scraping cycle at 2025-07-25 11:36:45
+2025-07-25 11:36:45,477 - INFO - 🔍 Checking board: https://in.pinterest.com/mohanty2922/y2k-fashion/
+2025-07-25 11:36:45,477 - INFO - ✨ Found 2 new pins from https://in.pinterest.com/mohanty2922/y2k-fashion/
+2025-07-25 11:36:45,477 - INFO - 🔄 Processing 2 new pins...
+2025-07-25 11:36:45,978 - INFO - ✅ Processed pin: Fashion Item 84...
+2025-07-25 11:36:46,480 - INFO - ✅ Processed pin: Fashion Item 821...
+2025-07-25 11:36:48,482 - INFO - 🔍 Checking board: https://in.pinterest.com/mohanty2922/rita-mota-fashion/
+2025-07-25 11:36:48,482 - INFO - ✨ Found 2 new pins from https://in.pinterest.com/mohanty2922/rita-mota-fashion/
+2025-07-25 11:36:48,482 - INFO - 🔄 Processing 2 new pins...
+2025-07-25 11:36:48,985 - INFO - ✅ Processed pin: Fashion Item 125...
+2025-07-25 11:36:49,485 - INFO - ✅ Processed pin: Fashion Item 186...
+2025-07-25 11:36:51,487 - INFO - 🔍 Checking board: https://in.pinterest.com/mohanty2922/hailey-bieber-fashion/
+2025-07-25 11:36:51,487 - INFO - 📌 No new pins found in https://in.pinterest.com/mohanty2922/hailey-bieber-fashion/
+2025-07-25 11:36:53,488 - INFO - ✅ Scraping cycle completed. Total new pins: 4
+2025-07-25 11:36:53,488 - INFO - 📊 Statistics: 4 total pins from 3 boards
+2025-07-25 11:36:53,489 - INFO - 😴 Sleeping for 30.0 minutes until next check...
